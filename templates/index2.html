@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% set current_page = 'index' %}
+
+{% block title %}Главная — {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>Панель управления организацией</h1>
+    <p>Выберите необходимый раздел в меню выше или воспользуйтесь быстрыми ссылками ниже.</p>
+    <!-- Кнопка запуска БД будет активна после реализации логики docker-compose up -->
+    <!-- <button type="button" disabled style="opacity: 0.6; cursor: not-allowed;">Запустить базу данных PostgreSQL</button> -->
+     <button type="button" style="opacity: 0.6; cursor: not-allowed;">Войти</button> 
+</div>
+
+<div class="cards-grid">
+    <div class="card">
+        <h3>Сотрудники</h3>
+        <p>Управление сотрудниками.</p>
+        <a href="{{ url_for('employees') }}" class="btn">Перейти к списку</a>
+    </div>
+    <div class="card">
+        <h3>Подразделения</h3>
+        <p>Подразделения.</p>
+        <a href="{{ url_for('departments') }}" class="btn">Открыть структуру</a>
+    </div>
+    <div class="card">
+        <h3>Глобальный поиск</h3>
+        <p>Поиск</p>
+        <a href="{{ url_for('search') }}" class="btn">Начать поиск</a>
+    </div>
+</div>
+{% endblock %}
