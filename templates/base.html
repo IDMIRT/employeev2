@@ -117,15 +117,23 @@
 
 <header class="navbar">
     <a href="/" class="logo">MyFlaskApp</a>
-    
-    <!-- Кнопка-бургер -->
-    <!-- <button class="burger-btn" aria-label="Открыть меню">&#9776;</button> -->
 
     <nav>
         <ul class="nav-menu">
-            <li><a href="#" class="active">Сотрудники</a></li>
-            <li><a href="#">Подразделения</a></li>
-            <li><a href="#">Поиск</a></li>
+            <li><a href="#" class="active {% if not is_authorized %}disabled-link{% endif %}" 
+                {% if not is_authorized %}aria-disabled="true"{% endif %} > Сотрудники </a></li>
+            <li><a href="#" class="active {% if not is_authorized %}disabled-link{% endif %}" 
+                {% if not is_authorized %}aria-disabled="true"{% endif %} > Подразделения </a></li>
+            <!-- <li><a href="#">Подразделения</a></li> -->
+            <!-- <li><a href="#">Поиск</a></li> -->
+            <li><a href="#" class="active {% if not is_authorized %}disabled-link{% endif %}" 
+                {% if not is_authorized %}aria-disabled="true"{% endif %} > Поиск </a></li> 
+            {% if not is_autorized %}
+                <li><a href="#">Войти</a></li>
+            {% else %}    
+                <li><a href="#">Выйти</a></li>
+            {% endif %}
+
         </ul>
     </nav>
 </header>
