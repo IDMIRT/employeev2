@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %} Выбор пользователя {% endblock %}
+
+<form method="POST">
+    <label for="username">Выберите пользователя:</label>
+    <select name="username" id="username" required>
+        <!-- Добавляем заглушку по умолчанию -->
+        <option value="" disabled selected>-- Выберите аккаунт --</option>
+        
+        {% for user_id, user_name in users %}
+            <option value="{{ user_id }}">{{ user_name }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="password">Пароль:</label>
+    <input type="password" name="password" id="password" required>
+
+    <button type="submit">Войти</button>
+</form>

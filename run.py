@@ -1,12 +1,22 @@
 from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 
+current_user = None
+password_current_user = None
+
+
 app = Flask(__name__)
 
 db = SQLAlchemy()
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db' 
 
-current_user = None
-password_current_user = None
+app.config['SQLALCHEMY_BINDS'] = {} 
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+from models import User,Employee,Department
+
+db.create_all()
+
 
 @app.route('/')
 def home_page():
@@ -20,7 +30,14 @@ def home_page():
 
 @app.route('/login')
 def login():
-    pass
+
+    users_query = User.query.all()
+    users_list = [(str(users.id), users.name) for users in users_query]
+
+    render_template('login.html',users_list=users_list)
+
+
+    
 
 
 @app.route('/logout')
