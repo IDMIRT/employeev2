@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Ошибка приложения{% endblock %}
+
+{% block content %}
+<h1>Ошибка</h1>
+<p>Страница ошибки</p>
+
+<div style="background-color: #fee; color: #900; padding: 15px; border-left: 5px solid #d9534f; margin-bottom: 20px;"> 
+    <strong>{{ name_error | default("Неизвестная ошибка") }}</strong> 
+    {% if details %} 
+    <p style="white-space: pre-wrap; font-size: 0.9em; margin-top: 10px;">{{ details }}</p> 
+    {% endif %} 
+</div>
+{% endblock %}

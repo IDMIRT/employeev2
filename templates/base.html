@@ -13,13 +13,21 @@
             margin: 0;
             padding: 0;
         }
-
-        body {
+        
+         body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4; 
+            display: grid; 
+            place-items: center; 
+            height: 100vh;
+            margin: 0;
+        }
+        /* body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.5;
             background-color: #f4f7fa;
             color: #333;
-        }
+        } */
 
         .navbar {
             position: fixed;
@@ -116,7 +124,7 @@
 <body>
 
 <header class="navbar">
-    <a href="/" class="logo">MyFlaskApp</a>
+    <a href="/" class="logo">Управление сотрудниками</a>
 
     <nav>
         <ul class="nav-menu">
@@ -129,9 +137,9 @@
             <li><a href="#" class="active {% if not is_authorized %}disabled-link{% endif %}" 
                 {% if not is_authorized %}aria-disabled="true"{% endif %} > Поиск </a></li> 
             {% if not is_autorized %}
-                <li><a href="#">Войти</a></li>
+                <li><a href={{ url_for('login') }}>Войти</a></li>
             {% else %}    
-                <li><a href="#">Выйти</a></li>
+                <li><a href="{{ url_for('logout') }}">Выйти</a></li>
             {% endif %}
 
         </ul>

@@ -2,15 +2,18 @@
 
 {% block title %} Выбор пользователя {% endblock %}
 
-<form method="POST">
+{% block content %}
+<form method="POST" action="{{ url_for('login') }}">
     <label for="username">Выберите пользователя:</label>
     <select name="username" id="username" required>
-        <!-- Добавляем заглушку по умолчанию -->
+        Добавляем заглушку по умолчанию -->
         <option value="" disabled selected>-- Выберите аккаунт --</option>
         
-        {% for user_id, user_name in users %}
-            <option value="{{ user_id }}">{{ user_name }}</option>
+        {% for id, name in users_list %}
+            <option value="{{ id }}">{{ name }}</option>
         {% endfor %}
+        <option disabled selected>Отладка: список скрыт</option>
+        
     </select>
 
     <label for="password">Пароль:</label>
@@ -18,3 +21,4 @@
 
     <button type="submit">Войти</button>
 </form>
+{% endblock %}
