@@ -3,11 +3,14 @@ import os
 import docker
 from pathlib import Path
 import time
+import sqlite3
+
+
 
 def auth_users(current_dir):
-    import sqlite3
-
+    # import sqlite3
     path_db_users = current_dir / 'users.db'
+    
 
     try:
 
@@ -26,6 +29,31 @@ def auth_users(current_dir):
     finally: 
        if conn is not None: 
            conn.close()
+
+def check_user(user,password,current_dir):
+    error = None
+    path_db_users = current_dir / 'users.db'
+    try:
+        conn = sqlite3.connect(path_db_users)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        query = "SELECT name,password FROM users where name = ?"
+        cursor.execute(query, (user,)) 
+        row = cursor.fetchone()
+
+        if row:
+            user_db = row['name']
+            password_db = row['password']
+            if user == user_db and password == password_db:
+                return True
+            else:
+                return False, "Пользователь или пароль неверен"
+        else:
+            error = "Пользователь не найден"
+            raise Exception(error)
+    except sqlite3.Error as e: 
+        print(f"Ошибка БД: {e}") 
+    return None
 
 
 def check_docker():
@@ -64,13 +92,25 @@ def start_docker(user,password):
         }
 
         # Проверяем, нет ли старого контейнера с таким именем
-        # try:
-        #     old_container = client.containers.get("iline_employee")
-        #     old_container.remove(force=True)
-        # except docker.errors.NotFound:
-        #     pass
+        try:
+            old_container = client.containers.get("iline_employee")
+            old_container.remove(force=True)
+        except docker.errors.NotFound:
+            pass
+        
+        # container = client.containers.run(
+        #     image="postgres:18",
+        #     name="iline_employee",
+        #     environment=env_vars,
+        #     ports={'5432/tcp': 5432},
+        #     volumes={
+        #         str(host_data_path): {'bind': '/var/lib/postgresql/data', 'mode': 'rw'}
+        #     },
+        #     detach=True,
+        #     tty=True
+        # )
 
-        container = client.containers.run(
+        client.containers.run(
             image="postgres:18",
             name="iline_employee",
             environment=env_vars,
@@ -79,8 +119,7 @@ def start_docker(user,password):
                 str(host_data_path): {'bind': '/var/lib/postgresql/data', 'mode': 'rw'}
             },
             detach=True,
-            tty=True
-        )
+            tty=True)
         
         print("Контейнер запущен. Ожидаем готовность...")
         
@@ -91,7 +130,7 @@ def start_docker(user,password):
                 conn = psycopg2.connect(conn_str)
                 conn.close()
                 
-                # ВОЗВРАЩАЕМ СТРОКУ ПОДКЛЮЧЕНИЯ ДЛЯ FLASK
+                
                 return conn_str 
             except Exception:
                 time.sleep(2)
@@ -101,3 +140,13 @@ def start_docker(user,password):
      except Exception as e:
         print(f"Ошибка запуска Docker: {e}")
         return None
+
+def stop_docker():
+    client = docker.from_env()
+    container = client.containers.get('iline_employee')
+    if container.is_running():
+        container.stop()
+        # status = container.status
+
+    # if status == 'running':
+        # container.stop()

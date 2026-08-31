@@ -12,12 +12,25 @@
         {% for id, name in users_list %}
             <option value="{{ id }}">{{ name }}</option>
         {% endfor %}
-        <option disabled selected>Отладка: список скрыт</option>
+        <!-- <option disabled selected>Отладка: список скрыт</option> -->
         
     </select>
 
     <label for="password">Пароль:</label>
     <input type="password" name="password" id="password" required>
+
+    {% if error_message %} 
+    <div style=" color: #d9534f; 
+        background-color: #f2dede; 
+        border: 1px solid #ebccd1; 
+        border-radius: 4px; 
+        padding: 10px; 
+        font-size: 14px; 
+        margin-top: -10px; /* Подтягиваем ближе к полю */ 
+        margin-bottom: 20px; 
+    "> &#x26A0;&nbsp; {{ error_message }} 
+    </div> 
+    {% endif %}
 
     <button type="submit">Войти</button>
 </form>

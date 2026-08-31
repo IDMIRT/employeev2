@@ -1,7 +1,7 @@
 from flask import Flask, render_template,request
 from flask_sqlalchemy import SQLAlchemy
 from pathlib import Path
-from services import auth_users
+from services import auth_users,check_user,check_docker,start_docker
 
 
 current_dir = Path(__file__).resolve().parent
@@ -39,6 +39,8 @@ def home_page():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
 
+    error_message = None
+
     if request.method=='GET':           
         users_list = auth_users(current_dir)
         if not users_list[0] == []:
@@ -46,7 +48,33 @@ def login():
         else:
             return render_template('error.html',name_error = users_list[1])
         
-    # elif request.method=='POST': 
+    elif request.method=='POST': 
+        current_user = request.form.get("username")
+        password_current_user=request.form.get("password")
+
+        check = check_user(current_user,password_current_user,current_dir)
+        if check == True and check_docker()==True:
+            dsn = start_docker(current_user,password_current_user)
+
+        if not dsn == None:
+            app.config['SQLALCHEMY_DATABASE_URI'] = dsn 
+            # app.config['SQLALCHEMY_BINDS'] = {} 
+            app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+            from models import Employee,Department
+            with app.app_context():
+                db.create_all()
+
+
+
+
+            
+            
+
+
+
+         
+
 
 
     
