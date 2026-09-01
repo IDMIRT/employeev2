@@ -1,9 +1,9 @@
-from flask import Flask, render_template,request
+from flask import Flask, render_template,request,redirect,url_for
 from flask_sqlalchemy import SQLAlchemy
 from pathlib import Path
-from services import auth_users,check_user,check_docker,start_docker
+from services import auth_users,check_user,check_docker,start_docker,stop_docker
 
-
+database_open = False
 current_dir = Path(__file__).resolve().parent
 current_user = None
 password_current_user = None
@@ -49,11 +49,13 @@ def login():
             return render_template('error.html',name_error = users_list[1])
         
     elif request.method=='POST': 
-        current_user = request.form.get("username")
+        user_id = int(request.form.get("username"))
         password_current_user=request.form.get("password")
+        
 
-        check = check_user(current_user,password_current_user,current_dir)
-        if check == True and check_docker()==True:
+        user_db = check_user(user_id,password_current_user,current_dir)
+        if user_db[0] == True and check_docker()==True:
+            current_user = user_db[1] 
             dsn = start_docker(current_user,password_current_user)
 
         if not dsn == None:
@@ -61,29 +63,24 @@ def login():
             # app.config['SQLALCHEMY_BINDS'] = {} 
             app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-            from models import Employee,Department
-            with app.app_context():
-                db.create_all()
+            if database_open==False :
+                from models import Employee,Department
+                with app.app_context():
+                    db.create_all()
 
-
-
-
-            
-            
-
-
-
-         
-
-
-
+    return redirect(url_for('home_page'))
     
 
 
-@app.route('/logout')
+@app.route('/logout',methods=['GET', 'POST'])
 def logout():
-    pass
+    stopped_db = stop_docker()
 
+    if stopped_db == True:
+        current_user = None
+        
+    
+    return redirect(url_for('home_page')) 
 
 
 if __name__ == '__main__':
