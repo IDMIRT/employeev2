@@ -56,7 +56,7 @@ def login():
         user_db = check_user(user_id,password_current_user,current_dir)
         if user_db[0] == True and check_docker()==True:
             current_user = user_db[1] 
-            dsn = start_docker(current_user,password_current_user)
+            dsn = start_docker()
 
         if not dsn == None:
             app.config['SQLALCHEMY_DATABASE_URI'] = dsn 
