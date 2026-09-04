@@ -1,9 +1,10 @@
 from flask import Flask, render_template,request,redirect,url_for
-from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import inspect, MetaData
 from pathlib import Path
 from services import auth_users,check_user,check_docker,start_docker,stop_docker
+from models import db,Employee,Department
 
-database_open = False
+# database_open = False
 current_dir = Path(__file__).resolve().parent
 current_user = None
 password_current_user = None
@@ -11,11 +12,11 @@ password_current_user = None
 
 app = Flask(__name__)
 
-db = SQLAlchemy()
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db' 
+# db = SQLAlchemy()
 
-# app.config['SQLALCHEMY_BINDS'] = {} 
-# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:' #заглушка без неё init_app падает
+db.init_app(app)
 
 # from models import Employee,Department
 
@@ -59,14 +60,25 @@ def login():
             dsn = start_docker()
 
         if not dsn == None:
-            app.config['SQLALCHEMY_DATABASE_URI'] = dsn 
-            # app.config['SQLALCHEMY_BINDS'] = {} 
-            app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-            if database_open==False :
-                from models import Employee,Department
-                with app.app_context():
-                    db.create_all()
+            with app.app_context():
+                
+                app.config['SQLALCHEMY_DATABASE_URI'] = dsn                
+                db.engines[None] = db.create_engine(app.config['SQLALCHEMY_DATABASE_URI'], future=True)
+                db.session.remove()
+                db.engine.dispose()
+               
+                
+                metadata = inspect(db.engine) 
+                if not metadata.has_table(Employee.__tablename__):
+                    print(f"Таблица '{Employee.__tablename__}' не найдена. Создаем структуру БД...") 
+                    try: 
+                        db.create_all() 
+                        print("Таблицы Employee и Department созданы успешно.") 
+                    except Exception as e: 
+                        error_message = f"Ошибка создания таблиц: {str(e)}" 
+                else: print("Структура БД уже существует.")
+           
+            
 
     return redirect(url_for('home_page'))
     

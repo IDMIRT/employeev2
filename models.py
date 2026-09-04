@@ -1,4 +1,6 @@
-from run import db
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
 
 class Employee(db.Model):
     __tablename__= 'employee'

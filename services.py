@@ -73,119 +73,131 @@ def check_docker():
         return False, f"Произошла ошибка: {e}"
     
 
+def start_container_db(client):
+    stop_check = time.time() + 180
+    try:
+        docker_container = client.containers.get('iline_employee')
+    except Exception:
+        raise RuntimeError("Контейнер 'iline_employee' не найден. Убедитесь, что он успешно запустился через docker-compose.") 
+    
+    print('Ожидаем запуск контейнера')
+            
+    while time.time() < stop_check:
+        try:
+            docker_container.reload()
+            health_status = docker_container.attrs['State'].get('Health', {}).get('Status')
+
+            if health_status == 'healthy': 
+                print("БД здорова согласно healthcheck, можно подключаться")                 
+                return True
+            
+            if docker_container.status in ('exited', 'dead', 'removing'): 
+                logs = docker_container.logs(tail=20).decode('utf-8') 
+                raise RuntimeError( f"Контейнер перешел в статус '{docker_container.status}'. Ожидание прервано.\nПоследние логи:\n{logs}" )
+            
+            if int(time.time()) % 10 == 0: 
+                print(f"Текущий статус: {health_status or 'starting'}... Осталось ~{int(stop_check - time.time())} сек.") 
+
+        except docker.errors.APIError as e: 
+            print(f"Временная ошибка при обращении к Docker API: {e}. Повтор...")
+            time.sleep(3) 
+                
+    docker_container.reload() 
+    final_status = docker_container.attrs['State'].get('Health', {}).get('Status') 
+    current_logs = docker_container.logs(tail=50).decode('utf-8') 
+                
+    raise TimeoutError( f"Контейнер iline_employee не запустился за отведенное время (180 сек).\n")
+
+def check_start_db(user,password):
+    # dsn = f"postgresql+psycopg2://{user}:{password}@localhost:5432/employees" #для SQLAlchemy
+    dsn = None
+    import psycopg2
+    for starting in range(180): #postgre стартует секунд 10
+        print(f"Поытка подключения к БД №{starting}")
+        try:            
+            #для psycopg2 используем прямое подключение                           
+            conn = psycopg2.connect(f"postgresql://{user}:{password}@localhost:5432/employees")
+            conn.close()    
+            dsn = f"postgresql+psycopg2://{user}:{password}@localhost:5432/employees" #для SQLAlchemy            
+            print("БД готова к работе")            
+            return dsn 
+            
+        except psycopg2.OperationalError as e:
+
+            err_str = str(e)
+
+            if "password authentication failed" in err_str or "no pg_hba.conf entry" in err_str: 
+                raise RuntimeError(f"Ошибка авторизации: {err_str}")
+
+            if "does not exist" in err_str and "accepting connections" in err_str: 
+                print("Сервер запущен, но таблицы инициализируются...") 
+                time.sleep(5) 
+                continue
+
+            time.sleep(1)
+
+        except psycopg2.InterfaceError as e: 
+            time.sleep(1)                    
+
+        except Exception:            
+            time.sleep(5)
+
+    if not dsn:
+        raise TimeoutError("PostgreSQL не ответил за отведенное время.")
+
+    return dsn
+    
+
 def start_docker():
         
     user = "employee" #в дальнейшем подумать, хранить пользователей в env или вытягивать из users.db создав фикированную таблицу
     password = "employee"
-    docker_start = False
-    temp_env_path = None #область видимости
+    db_dir = Path(__file__).resolve().parent/'data' #для хранения данных
+    docker_start = False    
+    temp_env_path = None #область видимости    
+    postgre_dir = '/var/lib/postgresql'     
+    client = docker.from_env()
+    # в windows папка data создается с правами пользователя системы, поэтому
+    # используем другой контейнер для создания папки /data с правами all решение так себе, но другого способа не нашел
+    if not db_dir.exists(): 
+        
+        print("Не найдена папка для БД, создаем для работы приложения") 
+        client.containers.run(image="alpine", # Легковесный образ 
+                                     command=f"sh -c 'mkdir -p {postgre_dir} && chown -R 999:999 {postgre_dir}'", 
+                                     volumes={db_dir: {'bind': postgre_dir, 'mode': 'rw'}}, 
+                                     detach=False, # Выполнить и выйти 
+                                     remove=True # Удалить за собой сразу после выполнения 
+                                     )
 
     with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.env') as env_file: 
         env_file.write(f"POSTGRES_USER={user}\n") 
-        env_file.write(f"POSTGRES_PASSWORD={password}\n") 
-        env_file.write("POSTGRES_DB=employees\n") 
+        env_file.write(f"POSTGRES_PASSWORD={password}\n")         
         temp_env_path = env_file.name 
 
-    try: # Переходим в папку с docker-compose.yml 
-        # os.chdir(current_dir) 
-        cmd = [ "docker", "compose", # или "docker-compose" 
-               "--env-file", temp_env_path, # Указываем наш временный файл 
-               "up", "-d", # -d (detached) как в вашем коде 
-               "--build" # На всякий случай пересобрать конфиг 
+    try:          
+        cmd = [ "docker", "compose", 
+               "--env-file", temp_env_path, 
+               "up", "-d" 
                ] 
         print("Запуск контейнера через docker compose...") 
         result = subprocess.run(cmd, capture_output=True, text=True, check=True) 
-        print(result.stdout) 
-        # return True
+        print(result.stdout)         
         docker_start = True
+
     except subprocess.CalledProcessError as e: 
         print(f"Ошибка Docker:\n{e.stderr}")         
+
     finally:  
         if os.path.exists(temp_env_path): 
             os.unlink(temp_env_path)
 
-    if docker_start:
-        dsn = f"postgresql+psycopg2://{user}:{password}@localhost:5432/employees" #для SQLAlchemy
-        import psycopg2
-        for starting in range(30): #postgre стартует секунд 10
-            try:            
-                #для psycopg2 используем прямое подключение               
-                conn = psycopg2.connect(f"postgresql://{user}:{password}@localhost:5432/employees")
-                conn.close()                
-                print("БД готова к работе")
-                return dsn 
-            except psycopg2.OperationalError as e:
-             if "password authentication failed" in str(e) or "database does not exist" in str(e):
-                    dsn = None
-                    time.sleep(1)        
 
-            except Exception:
-                dsn = None
-                time.sleep(1)
-                
-    raise TimeoutError("PostgreSQL не ответил за отведенное время.")
+    dsn = check_start_db(user,password)
+    return dsn
 
 
-    #  try:
-    #     base_dir = Path(__file__).resolve().parent 
-    #     database_dir = base_dir / 'data'
-        
-    #     # if not database_dir.exists(): #лишнее, папка data создается средствами docker
-    #     #     print(f"Папка {database_dir} не найдена. Создаем её.")
-    #     #     os.makedirs(database_dir)
+# start_docker()
 
-    #     client = docker.from_env()
-
-    #     env_vars = {
-    #         "POSTGRES_USER": user,
-    #         "POSTGRES_PASSWORD": password,
-    #         "POSTGRES_DB": "employees"
-    #     }
-
-    #     # Проверяем, нет ли старого контейнера с таким именем
-    #     try:
-    #         old_container = client.containers.get("iline_employees")
-    #         old_container.remove(force=True)
-    #     except docker.errors.NotFound:
-    #         pass
-        
-       
-    #     client.containers.run(
-    #         image="postgres:18",
-    #         name="iline_employees",
-    #         environment=env_vars,
-    #         ports={'5432/tcp': 5432},
-    #         volumes={
-    #             str(database_dir): {'bind': '/var/lib/postgresql/data', 'mode': 'rw'}
-    #         },
-    #         detach=True)
-        
-    #     print("Контейнер запущен. Ожидаем готовность...")
-        
-    #     for attempt in range(60): #на range(10) не успевает запустится и проверка падает
-    #         import psycopg2
-    #         try:
-    #             dsn = f"postgresql+psycopg2://{user}:{password}@localhost:5432/employees" #для SQLAlchemy
-    #             #для psycopg2 используем прямое подключение               
-    #             conn = psycopg2.connect(f"postgresql://{user}:{password}@localhost:5432/employees")
-    #             conn.close()                
-    #             print("БД готова к работе")
-    #             return dsn 
-    #         except psycopg2.OperationalError as e:
-    #             if "password authentication failed" in str(e) or "database does not exist" in str(e):
-    #                 dsn = None
-    #                 time.sleep(1)
-    #                 continue
-
-    #         except Exception:
-    #             dsn = None
-    #             time.sleep(1)
-                
-    #     raise TimeoutError("PostgreSQL не ответил за отведенное время.")
-
-    #  except Exception as e:
-    #     print(f"Ошибка запуска Docker: {e}")
-    #     return None
 
 def stop_docker():
     try:
@@ -196,3 +208,5 @@ def stop_docker():
 
     # if status == 'running':
         # container.stop()
+
+# stop_docker()
