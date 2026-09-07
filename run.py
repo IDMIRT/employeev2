@@ -1,4 +1,4 @@
-from flask import Flask, render_template,request,redirect,url_for
+from flask import Flask, render_template,request,redirect,url_for,session
 from sqlalchemy import inspect, MetaData
 from pathlib import Path
 from services import auth_users,check_user,check_docker,start_docker,stop_docker
@@ -11,26 +11,15 @@ password_current_user = None
 
 
 app = Flask(__name__)
-
-# db = SQLAlchemy()
-
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:' #заглушка без неё init_app падает
 db.init_app(app)
-
-# from models import Employee,Department
-
-# db.create_all()
-
-# def create_app():
-#     pass
-
 
 
 @app.route('/')
 def home_page():
 
-    if current_user:
+    if session.get('user',None):
         is_autorized = True
     else:
         is_autorized = False
@@ -56,13 +45,14 @@ def login():
 
         user_db = check_user(user_id,password_current_user,current_dir)
         if user_db[0] == True and check_docker()==True:
-            current_user = user_db[1] 
+            # current_user = user_db[1] 
+            session['user'] = user_db[1] 
             dsn = start_docker()
 
         if not dsn == None:
             with app.app_context():
                 
-                app.config['SQLALCHEMY_DATABASE_URI'] = dsn                
+                app.config['SQLALCHEMY_DATABASE_URI'] = dsn #нельзя просто поменять uri нужно полностью все сбросить               
                 db.engines[None] = db.create_engine(app.config['SQLALCHEMY_DATABASE_URI'], future=True)
                 db.session.remove()
                 db.engine.dispose()
@@ -75,8 +65,10 @@ def login():
                         db.create_all() 
                         print("Таблицы Employee и Department созданы успешно.") 
                     except Exception as e: 
-                        error_message = f"Ошибка создания таблиц: {str(e)}" 
-                else: print("Структура БД уже существует.")
+                        error_message = f"Ошибка создания таблиц: {e}" 
+                else: 
+                    print("Структура БД уже существует.")
+        
            
             
 
@@ -89,7 +81,7 @@ def logout():
     stopped_db = stop_docker()
 
     if stopped_db == True:
-        current_user = None
+        session['user'] = None
         
     
     return redirect(url_for('home_page')) 
