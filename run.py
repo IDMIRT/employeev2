@@ -1,4 +1,4 @@
-from flask import Flask, render_template,request,redirect,url_for,session
+from flask import Flask, render_template,request,redirect,url_for,session,flash
 from sqlalchemy import inspect, MetaData
 from pathlib import Path
 from services import auth_users,check_user,check_docker,start_docker,stop_docker
@@ -26,6 +26,14 @@ def home_page():
         
     return render_template('index.html',is_autorized=is_autorized)
 
+
+@app.route('/error')
+def error(message_error=None):
+    
+    return render_template('error.html', name_error=message_error)
+
+    
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
 
@@ -44,10 +52,14 @@ def login():
         
 
         user_db = check_user(user_id,password_current_user,current_dir)
-        if user_db[0] == True and check_docker()==True:
+        if user_db[0] == True:
             # current_user = user_db[1] 
             session['user'] = user_db[1] 
             dsn = start_docker()
+
+        if check_docker()[0] == False:
+            # flash(f"Ошибка, нет установленного Docker: {str(e)}", "danger")
+            return redirect(url_for('error'),f"Ошибка, нет установленного Docker: {str(e)}")
 
         if not dsn == None:
             with app.app_context():
@@ -88,4 +100,16 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+
+    docker_install = check_docker() #если нет установленного докер то нет смысла запускать
+
+    if len(docker_install) == 1:
+        app.run(debug=True)
+    else:
+        print(docker_install[1])
+
+
+    # if check_docker()==True:
+        
+    # else:
+    #     print("Оши")
