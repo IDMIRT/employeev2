@@ -14,6 +14,7 @@ class Department(db.Model):
     __tablename__= 'department'
     id = db.Column(db.Integer, primary_key=True)
     name_department = db.Column(db.String(128), unique=True, index=True, nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=True)
     
 
 
