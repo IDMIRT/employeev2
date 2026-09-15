@@ -4,17 +4,19 @@ from pathlib import Path
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 
-
-from services import auth_users, check_user, start_docker, stop_docker, docker 
+from services import start_docker, stop_docker 
 from models import db, Employee, Department
-from mimesis import Person, Generic
+from mimesis import Person
 from mimesis.locales import Locale
 import random
+import argparse
 
-def generate_data(dsn=None, count_employees=5000):
+def generate_data(dsn=None, count_employees=5000, count_department=10): 
     """
-    Функция очистки и заполнения рабочей БД PostgreSQL.
-    Работает автономно от Flask.
+    Функция генерации данных
+    dsn - строка подключения
+    count_employees - количество тестовых сотрудников
+    count_department - количество подразделений в организации
     """
     print(f"Подключение к целевой БД: {dsn}")
 
@@ -37,27 +39,19 @@ def generate_data(dsn=None, count_employees=5000):
             conn.execute(text("DELETE FROM department"))
             
     person = Person(Locale.RU)
-    generic = Generic(Locale.RU)
-    # names_department = ["Приемки", "Контроля", "Сбыта", "Бухгалтерия", "Безопасность", "Документооборота"]
-
-    departments_by_level = {1: [], 2: [], 3: [], 4: [], 5: []}
+   
     
     t_start = time.time()
     
-    # --- Создание дерева ---
+    # Верхний уровень - организация
     root_dept = Department(name_department="ООО 'Рога и копыта'")
     db_session.add(root_dept)
-    db_session.commit() # Нужен ID корня
+    db_session.commit() 
     choice_department = [root_dept]
 
-    # for level in range(1, 6): 
-        # depts_choice = list(current_parents)
-        # num_depts = random.randint(3, 8) 
-        # new_level_depts = [] 
-    for i in range(10): 
+    #для увеличения уровней вложенности можно просто увеличить количество отделов random раскидает
+    for i in range(count_department): 
         parent_choice = random.choice(choice_department) 
-            # depts_choice.remove(parent_choice)
-            # dept_name = parent_choice
         dept = Department(name_department=f"Отдел {i+1}", parent_id=parent_choice.id) 
         db_session.add(dept) 
         db_session.commit()
@@ -65,57 +59,49 @@ def generate_data(dsn=None, count_employees=5000):
 
         boss = Employee(name=person.full_name(), department_id=dept.id, 
                             boss_department=True ) 
-        db_session.add(boss) # Сохраняем кортеж (отдел, объект_босса), чтобы связать их позже 
-            # new_level_depts.append({'department': dept, 'boss': boss}) 
-            # Фиксируем изменения в БД, чтобы появились ID 
-        db_session.commit() # Теперь, когда у отделов есть ID, привязываем к ним боссов 
-
-        # for item in new_level_depts: 
-        #     item['boss'].department_id = item['department'].id 
-
-        # db_session.commit() # Сохраняем связь Boss -> Department
-        # for d in new_level_depts: 
-        #     db_session.refresh(d)
-
+        db_session.add(boss) 
+        db_session.commit()    
     
 
-    # --- Сотрудники ---
-    # leaf_departments = departments_by_level[5]
-    # employees_to_add = []   
+    # заполняем сотрудников после подразделений
     
-    # for people in range(count_employees):
+    employees_to_add = []   
+    
+    for _ in range(count_employees):
 
-    #     emp = Employee(
-    #         name=person.full_name(),
-    #         department_id=random.choice(leaf_departments).id,
-    #         boss_department=False
-    #     )
-    #     employees_to_add.append(emp)
+        emp = Employee(
+            name=person.full_name(),
+            department_id=random.choice(choice_department).id,
+            boss_department=False
+        )
+        employees_to_add.append(emp)
         
-    # db_session.bulk_save_objects(employees_to_add)
-    # db_session.commit()
+    db_session.bulk_save_objects(employees_to_add) # потом переделать заполнение департаментов схожим образом списком
+    db_session.commit()
     
-    # elapsed = time.time() - t_start
-    # print(f"\n✅ Данные успешно записаны за {elapsed:.2f} сек.")
+    elapsed = time.time() - t_start
+    print(f"\n Данные заполнены {elapsed:.2f} сек.")
     db_session.close()
 
+def args_process():
+    arguments = argparse.ArgumentParser(description="Генерация тестовых данных для приложения")
+    arguments.add_argument( '-e', '--employees', type=int, default=5000, help='Сотрудники (по умолчанию: 5000)' ) 
+    arguments.add_argument( '-d', '--departments', type=int, default=10, help='Подразделения (по умолчанию: 10)' ) 
+    return arguments.parse_args()
+
 def main():
-    """Главная точка входа"""
-    
-    
-    
+    arguments = args_process()
     try:
         dsn = start_docker() 
     except Exception as e:
         print(f"Не удалось запустить инфраструктуру: {e}")
         return
 
-    # 3. Генерация данных
+    
     try:
-        generate_data(dsn, count_employees=5000)
-    finally:
-        # 4. Остановка контейнера (опционально, можно закомментировать для dev-среды)
-        print("\nОстанавливаем тестовый контейнер...")
+        generate_data(dsn, count_employees=arguments.employees,count_department=arguments.departments)
+    finally:        
+        print("Останавливаем контейнер")
         stop_docker()
         print("Работа завершена.")
 
