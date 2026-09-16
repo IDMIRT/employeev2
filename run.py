@@ -83,16 +83,21 @@ def login():
                     except Exception as e: 
                         error_message = f"Ошибка создания таблиц: {e}" 
                 else: 
-                    print("Структура БД уже существует.")
-        
-           
-            
+                    print("Структура БД уже существует.")            
 
     return redirect(url_for('home_page'))
 
 @app.route('/employees',methods=['GET', 'POST'])
 def employees(): 
-    pass
+    current_page = request.args.get('page',1)
+    sorting = request.args.get('sort','name')
+    order = request.args.get('order','asc')
+
+    page_count = 50
+
+
+
+
     
 
 

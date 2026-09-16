@@ -4,8 +4,8 @@ services:
     image: postgres:18 
     container_name: iline_employee
     environment:
-      POSTGRES_USER: usertest
-      POSTGRES_PASSWORD: 7486250
+      POSTGRES_USER: employees
+      POSTGRES_PASSWORD: employees
       POSTGRES_DB: employees
     volumes:
       - type: bind

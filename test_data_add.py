@@ -1,6 +1,6 @@
 import os
 import time
-from pathlib import Path
+from pathlib import Path7
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 
@@ -69,8 +69,7 @@ def generate_data(dsn=None, count_employees=5000, count_department=10):
     # поменял добавив отслеживание иерархии
     for i in range(count_department):
 
-        if hierarchy == 0:        
-            # parent_choice = random.choice(choice_department) 
+        if hierarchy == 0:                    
             parent_choice = root_dept 
         else:
             parent_choice = dept
@@ -109,17 +108,6 @@ def generate_data(dsn=None, count_employees=5000, count_department=10):
     employees_to_add = []   
     
     for _ in range(count_employees):
-        # проверка генерации
-        # emp_name = f"{person_gen.first_name()} {person_gen.last_name()}" 
-        # job_title = fake.job()        
-        # salary_val = round(random.uniform(40000, 250000), 2) 
-        # hire_date = fake.date_between(start_date='-10y', end_date='today')
-        # конец проверки генерации
-
-        # employee_position=db.Column(db.Text,nullabe=False)
-        # salary = db.Column(db.Numeric(10,2))
-        # date_employment= 
-
         emp = Employee(
             name=fake.name(),
             department_id=random.choice(choice_department).id,
