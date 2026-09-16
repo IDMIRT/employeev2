@@ -69,8 +69,9 @@ def check_docker():
         subprocess.check_call(["winget", "install", "docker-desktop"])
         return True
     except Exception as e:
-        # print(f"Произошла ошибка: {e}")
-        return False, f"Произошла ошибка: {e}"
+        print(f"Произошла ошибка: {e}")
+        # return False, f"Произошла ошибка: {e}"
+        return False
     
 
 def start_container_db(client):

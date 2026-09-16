@@ -10,6 +10,7 @@ from mimesis import Person
 from mimesis.locales import Locale
 import random
 import argparse
+from faker import Faker
 
 def generate_data(dsn=None, count_employees=5000, count_department=10): 
     """
@@ -44,23 +45,63 @@ def generate_data(dsn=None, count_employees=5000, count_department=10):
     t_start = time.time()
     
     # Верхний уровень - организация
+    fake = Faker('ru_RU') #генератор данных сотрудников
     root_dept = Department(name_department="ООО 'Рога и копыта'")
+    
     db_session.add(root_dept)
+    db_session.flush()
+    grand_boss = Employee(name=fake.name(),department_id=root_dept.id, 
+                                employee_position=f"Биг Босс", 
+                                salary = 1500000,
+                                date_employment=fake.date_between(start_date='-10y', end_date='today'),
+                                boss_department=True) 
+    db_session.add(grand_boss)
     db_session.commit() 
     choice_department = [root_dept]
+    current_department = root_dept
+    # добавил ограниченное количество профессий
+    positions = [ "Общий специалист", "Менеджер", "Помощник менеджера", 
+                 "Водитель", "Маркетолог", "HR-менеджер", 
+                 "Менеджер по маркетингу", "Юрисконсульт",  
+                 "Менеджер по логистике", "Офис-менеджер", "Бухгалтер", 
+                 "Менеджер по работе с клиентами", "Курьер", "Уборщик"]
+    hierarchy  = 0 #контролируем вложенность до 5 первый уровень это всегда root_dept    
+    # поменял добавив отслеживание иерархии
+    for i in range(count_department):
 
-    #для увеличения уровней вложенности можно просто увеличить количество отделов random раскидает
-    for i in range(count_department): 
-        parent_choice = random.choice(choice_department) 
-        dept = Department(name_department=f"Отдел {i+1}", parent_id=parent_choice.id) 
+        if hierarchy == 0:        
+            # parent_choice = random.choice(choice_department) 
+            parent_choice = root_dept 
+        else:
+            parent_choice = dept
+        
+        
+
+        name_dept = f"Отдел {i+1}"
+        dept = Department(name_department=name_dept, parent_id=parent_choice.id) 
         db_session.add(dept) 
-        db_session.commit()
+        db_session.flush()
+        # db_session.commit()
         choice_department.append(dept)
 
-        boss = Employee(name=person.full_name(), department_id=dept.id, 
-                            boss_department=True ) 
+        boss = Employee(name=fake.name(), department_id=dept.id, 
+                        employee_position=f"Руководитель {name_dept}", 
+                        salary = round(random.uniform(150000, 250000), 2),
+                        date_employment=fake.date_between(start_date='-10y', end_date='today'),
+                        boss_department=True) 
+        
         db_session.add(boss) 
-        db_session.commit()    
+        db_session.flush()
+        # db_session.commit()   
+
+        hierarchy += 1 
+
+        if hierarchy >=5:
+            hierarchy = 0
+
+    db_session.commit()
+    
+
     
 
     # заполняем сотрудников после подразделений
@@ -68,15 +109,28 @@ def generate_data(dsn=None, count_employees=5000, count_department=10):
     employees_to_add = []   
     
     for _ in range(count_employees):
+        # проверка генерации
+        # emp_name = f"{person_gen.first_name()} {person_gen.last_name()}" 
+        # job_title = fake.job()        
+        # salary_val = round(random.uniform(40000, 250000), 2) 
+        # hire_date = fake.date_between(start_date='-10y', end_date='today')
+        # конец проверки генерации
+
+        # employee_position=db.Column(db.Text,nullabe=False)
+        # salary = db.Column(db.Numeric(10,2))
+        # date_employment= 
 
         emp = Employee(
-            name=person.full_name(),
+            name=fake.name(),
             department_id=random.choice(choice_department).id,
+            employee_position = random.choice(positions),
+            salary = round(random.uniform(30000, 250000), 2),
+            date_employment=fake.date_between(start_date='-10y', end_date='today'),
             boss_department=False
         )
         employees_to_add.append(emp)
         
-    db_session.bulk_save_objects(employees_to_add) # потом переделать заполнение департаментов схожим образом списком
+    db_session.bulk_save_objects(employees_to_add) # потом переделать заполнение подразделений схожим образом списком
     db_session.commit()
     
     elapsed = time.time() - t_start

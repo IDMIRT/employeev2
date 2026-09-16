@@ -3,35 +3,10 @@ from sqlalchemy import inspect, MetaData
 from pathlib import Path
 from services import auth_users,check_user,check_docker,start_docker,stop_docker
 from models import db,Employee,Department
-# import click 
 import secrets # на сессиях зависают secret_key в куках, потому просто генерим secret_key
 import sys
 import os
 
-# print("--- ДИАГНОСТИКА ИМПОРТА ---")
-# print(f"Текущая рабочая директория: {os.getcwd()}")
-# print(f"Содержимое текущей папки: {os.listdir('.')}")
-
-# # Пытаемся проверить наличие файла физически
-# if os.path.exists('services.py'):
-#     print("Файл services.py НАЙДЕН в файловой системе.")
-# else:
-#     print("ОШИБКА: Файла services.py НЕТ в этой папке!")
-
-# # Пытаемся посмотреть пути поиска Python
-# print("\nПути, где Python ищет модули (sys.path):")
-# for p in sys.path:
-#     print(p)
-    
-# # Пытаемся принудительно загрузить
-# try:
-#     spec = __import__('services')
-#     print(f"\nИмпорт успешен! Модуль загружен из: {spec.__file__}")
-# except Exception as e:
-#     print(f"\nПРИНУДИТЕЛЬНЫЙ ИМПОРТ УПАЛ: {e}")
-
-# print("--- КОНЕЦ ДИАГНОСТИКИ ---\n")
-# database_open = False
 current_dir = Path(__file__).resolve().parent
 current_user = None
 password_current_user = None
@@ -41,7 +16,7 @@ app = Flask(__name__)
 #дабы не сбрасывать куки менять ключ
 app.secret_key = secrets.token_urlsafe(32)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:' #заглушка без неё init_app падает
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:' #заглушка обязательна, без неё init_app падает
 db.init_app(app)
 
 
@@ -114,6 +89,10 @@ def login():
             
 
     return redirect(url_for('home_page'))
+
+@app.route('/employees',methods=['GET', 'POST'])
+def employees(): 
+    pass
     
 
 
@@ -126,23 +105,6 @@ def logout():
         
     
     return redirect(url_for('home_page')) 
-
-
-
-# @app.cli.command('add_test_data')
-# @click.argument('count', default=50, type=int)
-# def add_test_data(count):
-#     """Заполняет базу данных тестовыми данными"""
-#     from test_data_add import generate_data
-    
-#     try:
-#         click.echo(f"Начинаю заполнение БД ({count} сотрудников)...")
-#         generate_data(count)
-#         click.echo("Готово.")
-#     except Exception as e:
-#         click.echo(f"Произошла ошибка: {e}")
-#         import traceback
-#         traceback.print_exc()
 
 
 
