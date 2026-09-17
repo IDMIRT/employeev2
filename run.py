@@ -8,27 +8,35 @@ import sys
 import os
 
 current_dir = Path(__file__).resolve().parent
-current_user = None
-password_current_user = None
+# current_user = None
+# password_current_user = None
 
 
 app = Flask(__name__)
 #дабы не сбрасывать куки менять ключ
 app.secret_key = secrets.token_urlsafe(32)
+# сессии
+# app.config['TEMPLATES_AUTO_RELOAD'] = True
+# app.jinja_env.auto_reload = True
+# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# сессии
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:' #заглушка обязательна, без неё init_app падает
 db.init_app(app)
 
+# @app.context_processor 
+# def navbar_visible(): 
+#     return dict(is_authorized=bool(session.get('user')))
 
 @app.route('/')
 def home_page():
 
     if session.get('user',None):
-        is_autorized = True
+        is_authorized = True
     else:
-        is_autorized = False
+        is_authorized = False
         
-    return render_template('index.html',is_autorized=is_autorized)
+    return render_template('index.html',is_authorized=is_authorized)
 
 
 @app.route('/error')
@@ -52,13 +60,13 @@ def login():
         
     elif request.method=='POST': 
         user_id = int(request.form.get("username"))
-        password_current_user=request.form.get("password")
+        session['password']=request.form.get("password")
         
 
-        user_db = check_user(user_id,password_current_user,current_dir)
-        if user_db[0] == True:
-            # current_user = user_db[1] 
+        user_db = check_user(user_id,session['password'],current_dir)
+        if user_db[0] == True:            
             session['user'] = user_db[1] 
+            # session.modified = True
             dsn = start_docker()
 
         if check_docker() != True:
@@ -95,9 +103,24 @@ def employees():
 
     page_count = 50
 
+    employees_query = Employee.query.order_by(Employee.id.asc)
 
+    sort_dict = {'name':Employee.name,'employee_position':Employee.employee_position,
+                 'salary':Employee.salary,'employment_date':Employee.date_employment}
 
+    field = sort_dict.get(sorting,Employee.name)
 
+    order_dict = {'asc':field.asc(),'desc':field.desc()}
+    employees_query = employees_query.order_by(order_dict.get(order,field.asc())) 
+
+    pagination = employees_query.paginate(page=current_page, per_page=page_count, error_out=False) 
+    employees = pagination.items # Список объектов сотрудников только для текущей страницы
+
+    return render_template('employees.html', 
+                           employees=pagination.items, 
+                           pagination=pagination, 
+                           current_sort=sorting, 
+                           current_order=order)
     
 
 
@@ -106,12 +129,9 @@ def logout():
     stopped_db = stop_docker()
 
     if stopped_db == True:
-        session['user'] = None
-        
+        session['user'] = None           
     
     return redirect(url_for('home_page')) 
-
-
 
 
 

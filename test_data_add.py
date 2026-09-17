@@ -1,6 +1,6 @@
 import os
 import time
-from pathlib import Path7
+from pathlib import Path
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 

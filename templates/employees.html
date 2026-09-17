@@ -1,0 +1,43 @@
+<!-- templates/employees.html -->
+{% extends "base.html" %}
+
+{% block title %}Список сотрудников{% endblock %}
+
+{% block content %}
+  <h2>Список сотрудников</h2>
+  
+  <!-- Здесь ваша таблица из предыдущего шага -->
+  <table>
+      <thead>
+          <tr>
+              <th>ФИО</th>
+              <th>Должность</th>
+              <th>Отдел</th>
+              <th>Зарплата</th>
+          </tr>
+      </thead>
+      <tbody>
+          {% for item in employees %}
+          <tr>
+              <td>{{ item.name }}</td>
+              <td>{{ item.position }}</td>
+              <td>{{ item.department.name_department if item.department else '—' }}</td>
+              <td>{{ "%.0f ₽"|format(item.salary or 0) }}</td>
+          </tr>
+          {% endfor %}
+      </tbody>
+  </table>
+
+  <!-- Пагинация внизу -->
+  <div style="margin-top: 20px;">
+      {% if pagination.has_prev %}
+         <a href="?page={{ pagination.prev_num }}">Назад</a>
+      {% endif %}
+      
+      Страница {{ pagination.page }} из {{ pagination.pages }}
+      
+      {% if pagination.has_next %}
+         <a href="?page={{ pagination.next_num }}">Вперед</a>
+      {% endif %}
+  </div>
+{% endblock %}

@@ -204,10 +204,9 @@ def stop_docker():
     try:
         subprocess.run(['docker', 'stop', 'iline_employee'], 
                        check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)        
+        return True
     except subprocess.CalledProcessError as e:
         print(f"Ошибка при остановке БД: {e.stderr.decode()}")
+        return False
 
-    # if status == 'running':
-        # container.stop()
-
-# stop_docker()
+    
