@@ -103,15 +103,20 @@ def employees():
 
     page_count = 50
 
-    employees_query = Employee.query.order_by(Employee.id.asc)
+    # employees_query = Employee.query.order_by(Employee.id.asc)
+    employees_query = Employee.query
 
     sort_dict = {'name':Employee.name,'employee_position':Employee.employee_position,
                  'salary':Employee.salary,'employment_date':Employee.date_employment}
 
     field = sort_dict.get(sorting,Employee.name)
 
-    order_dict = {'asc':field.asc(),'desc':field.desc()}
-    employees_query = employees_query.order_by(order_dict.get(order,field.asc())) 
+    # order_dict = {'asc':field.asc(),'desc':field.desc()}
+    if order == 'desc':
+        employees_query = employees_query.order_by(field.desc()) 
+    else:
+        employees_query = employees_query.order_by(field.asc()) 
+        # employees_query = employees_query.order_by(order_dict.get(order,field.asc())) 
 
     pagination = employees_query.paginate(page=current_page, per_page=page_count, error_out=False) 
     employees = pagination.items # Список объектов сотрудников только для текущей страницы

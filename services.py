@@ -10,8 +10,7 @@ import tempfile
 
 def auth_users(current_dir):
     # import sqlite3
-    path_db_users = current_dir / 'users.db'
-    
+    path_db_users = current_dir / 'users.db'    
 
     try:
 
