@@ -113,9 +113,9 @@ def employees():
 
     # order_dict = {'asc':field.asc(),'desc':field.desc()}
     if order == 'desc':
-        employees_query = employees_query.order_by(field.desc()) 
+        employees_query = employees_query.join(Department).order_by(field.desc()) 
     else:
-        employees_query = employees_query.order_by(field.asc()) 
+        employees_query = employees_query.join(Department).order_by(field.asc()) 
         # employees_query = employees_query.order_by(order_dict.get(order,field.asc())) 
 
     pagination = employees_query.paginate(page=current_page, per_page=page_count, error_out=False) 
