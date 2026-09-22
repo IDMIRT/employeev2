@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование {{ department.name_department }}{% endblock %}
+
+{% block content %}
+<h2>Редактирование: "{{ department.name_department }}"</h2>
+
+<!-- Вывод сообщений об успехе/ошибке -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div style="padding: 12px; margin-bottom: 15px; border-radius: 4px; 
+                  background-color: {% if category == 'success' %} #d4edda {% else %}#f8d7da{% endif %};
+                  color: {% if category == 'success' %}#155724{% else %}{{'#721c24'}}{% endif %};">
+          {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+<form method="POST">
+    <input type="hidden" name="dept_id" value="{{ department.id }}">
+
+    <label><strong>ID:</strong></label>
+    <span style="margin-left: 10px;">{{ department.id }}</span><br><br>
+
+    <label><strong>Название:</strong></label><br>
+    <input type="text" value="{{ department.name_department }}" disabled 
+           style="width: 300px; padding: 5px;"><br><br>
+
+    <label for="boss_select"><strong>Выберите руководителя:</strong></label><br>
+    <select name="boss_select" id="boss_select" style="width: 300px; padding: 6px;">
+        <option value="">-- Не назначен --</option>
+        {% for emp in employees %}
+            <option value="{{ emp.name }}"
+                    {% if emp.name == current_boss %}selected{% endif %}>
+                {{ emp.name }}
+            </option>
+        {% endfor %}
+    </select>
+    <small style="color: #666; margin-left: 10px;">(Сейчас: {{ current_boss or '—' }})</small><br><br>
+
+    <button type="submit" style="background: #2ecc71; color: white; border: none; padding: 8px 15px; cursor: pointer;">
+        Сохранить
+    </button>
+    <a href="{{ url_for('departments') }}" style="margin-left: 10px; color: #3498db;">Отмена</a>
+</form>
+<br>
+<a href="{{ url_for('departments') }}">&larr; Вернуться к списку всех подразделений</a>
+{% endblock %}

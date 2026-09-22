@@ -3,12 +3,11 @@
 
 <head>
     <meta charset="UTF-8">
-    <!-- без этой строки поиск справа уползает за границы экрана-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Управление сотрудниками{% endblock %}</title>
 
     <style>
-        /* Глобальный сброс отступов */
+        /* Глобальный сброс */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -47,7 +46,7 @@
             white-space: nowrap;
         }
 
-        /* Контейнер навигации */
+        /* --- НАВИГАЦИЯ --- */
         .nav-menu {
             list-style: none;
             display: flex;
@@ -57,7 +56,10 @@
             align-items: center;
         }
 
-        /* --- БАЗОВЫЕ СТИЛИ ССЫЛОК И СОСТОЯНИЙ --- */
+        .nav-menu li {
+            /* Элемент списка нужен для семантики */
+        }
+
         .nav-menu li a {
             color: #ecf0f1;
             text-decoration: none;
@@ -68,36 +70,28 @@
             border-bottom: 2px solid transparent;
         }
 
-        /* Обычное активное состояние (для авторизованных) */
+        /* Активное состояние (есть доступ + наведение) */
         .nav-menu li a:hover:not(.disabled-link),
         .nav-menu li a.active:not(.disabled-link) {
             color: #3498db;
             border-bottom-color: #3498db;
         }
 
-        /* ЗАБЛОКИРОВАННОЕ состояние (приоритет выше благодаря !important) */
-        .nav-menu li a.disabled-link,
-        .nav-menu li a.active.disabled-link {
+        /* Заблокированное состояние (нет доступа) */
+        .nav-menu li a.disabled-link {
             color: #bdc3c7 !important;
             cursor: default !important;
             pointer-events: none !important;
             border-bottom-color: transparent !important;
         }
 
-        /* На всякий случай — если наводят мышь на заблокированное */
-        .nav-menu li a.disabled-link:hover {
-            background-color: transparent;
-            color: #bdc3c7;
-        }
-
-        /* Основной контент страницы */
         main.container {
             max-width: 1200px;
             margin: 80px auto 0 auto;
             padding: 20px;
         }
 
-        /* Таблица */
+        /* --- ТАБЛИЦЫ И ПАГИНАЦИЯ (оставлено без изменений) --- */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -140,11 +134,10 @@
         }
 
 
-        /* --- АДАПТИВНОСТЬ (Mobile First / Breakpoint) --- */
+        /* --- АДАПТИВНОСТЬ --- */
         @media (max-width: 768px) {
             body {
                 display: block;
-                /* Отключаем центрирование на мобильных */
                 height: auto;
             }
 
@@ -177,72 +170,63 @@
                 padding: 15px 20px;
                 text-align: center;
                 border-left: none;
-                border-radius: 0;
-            }
-
-            /* Обычное активное состояние */
-            .menu-item-active {
-                color: #3498db;
-                cursor: pointer;
-                border-bottom-color: #3498db;
-            }
-
-            .menu-item-active:hover {
-                color: #5dade2;
-            }
-
-            /* Заблокированное состояние */
-            .menu-item-locked {
-                color: #bdc3c7 !important;
-                /* Принудительно серый */
-                cursor: default !important;
-                pointer-events: none !important;
-                border-bottom-color: transparent !important;
             }
         }
     </style>
 </head>
 
 <body>
-
     <header class="navbar">
         <a href="/" class="logo">Управление сотрудниками</a>
-
         <nav>
             <ul class="nav-menu">
-                <!-- <li><a href="#" class="active {% if not is_authorized %}disabled-link{% endif %}"  -->
-                <!-- <li><a href="{{url_for('employees')}}" class="active {% if not is_authorized %}disabled-link{% endif %}"
-                        {% if not is_authorized %}aria-disabled="true" {% endif %}> Сотрудники </a></li> -->
-                <li> <a href="{% if is_authorized %}{{url_for('employees')}}{% else %}#{% endif %}"
-                       class="{% if is_authorized %}menu-item-active{% else %}menu-item-locked{% endif %}"> Сотрудники </a> </li>
-                <li><a href="#"  
-                    class="{% if is_authorized %}menu-item-active{% else %}menu-item-locked{% endif %}"> Подразделения </a></li>
-                <!-- <li><a href="#">Подразделения</a></li> -->
-                <!-- <li><a href="#">Поиск</a></li> -->
-                <li><a href="#"  
-                    class="{% if is_authorized %}menu-item-active{% else %}menu-item-locked{% endif %}"> Поиск </a></li>
-                {% if is_authorized %}
-                <li><a href="{{url_for('logout') }}">Выйти</a></li>
-                {% else %}
-                <li><a href="{{url_for('login') }}">Войти</a></li>
-                {% endif %}
+                <!-- Сотрудники (с динамическим URL) -->
+                <li>
+                    <a href="{% if is_authorized %}{{ url_for('employees') }}{% else %}#{% endif %}"
+                        class="{% if is_authorized %}active{% else %}disabled-link{% endif %}" {% if not is_authorized
+                        %}aria-disabled="true" {% endif %}>
+                        Сотрудники
+                    </a>
+                </li>
+                
+                <li>
+                    <a href="{% if is_authorized %}{{ url_for('departments') }}{% else %}#{% endif %}"
+                        class="{% if is_authorized %}active{% else %}disabled-link{% endif %}" {% if not is_authorized
+                        %}aria-disabled="true" {% endif %}>
+                        Подразделения
+                    </a>
+                </li>
 
-                {% if is_authorized %}
-                СЕССИЯ ЕСТЬ (DEBUG)
-                {% else %}
-                СЕССИИ НЕТ (DEBUG)
-                {% endif %}
 
+                <!-- Поиск (заглушка текстом) -->
+                <li>
+                    {% if is_authorized %}
+                    <span class="active">Поиск</span>
+                    {% else %}
+                    <span class="disabled-link" aria-disabled="true">Поиск</span>
+                    {% endif %}
+                </li>
+
+                <!-- Кнопка Войти/Выйти -->
+                <li>
+                    {% if is_authorized %}
+                    <a href="{{ url_for('logout') }}">Выйти</a>
+                    {% else %}
+                    <a href="{{ url_for('login') }}">Войти</a>
+                    {% endif %}
+                </li>
+
+                <!-- Debug-индикатор -->
+                <li style="margin-left: 20px; font-size: 0.8rem; opacity: 0.8;">
+                    {% if is_authorized %}СЕССИЯ ЕСТЬ{% else %}СЕССИИ НЕТ{% endif %}
+                </li>
             </ul>
         </nav>
     </header>
 
-
     <main class="container">
-        {% block content %}
-        {% endblock %}
+        {% block content %}{% endblock %}
     </main>
-
 </body>
 
 </html>
