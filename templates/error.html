@@ -1,15 +1,47 @@
 {% extends "base.html" %}
 
-{% block title %}Ошибка приложения{% endblock %}
+{% block styles %}
+<style>
+    /* Контейнер сообщения об ошибке */
+    .alert-error {
+        background-color: #fee;          /* Светло-красный фон */
+        color: #900;                     /* Темно-красный текст */
+        padding: 15px;
+        border-left: 5px solid #d9534f; /* Яркая полоса слева */
+        margin-bottom: 20px;
+        font-family: Arial, sans-serif;
+    }
+
+    /* Заголовок внутри ошибки (текст ошибки) */
+    .alert-error strong {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 1.1em;
+    }
+
+    /* Блок с деталями (трейсбек или подробности) */
+    .alert-details {
+        white-space: pre-wrap;           /* Сохраняем переносы строк */
+        font-size: 0.9em;
+        margin-top: 10px;
+        font-family: Consolas, monospace;/* Моноширинный шрифт для кода/логов */
+        background-color: rgba(0,0,0,0.05); /* Легкий серый фон для текста деталей */
+        padding: 10px;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
 
 {% block content %}
-<h1>Ошибка</h1>
+<h1>Ошибка приложения</h1>
 <p>Страница ошибки</p>
 
-<div style="background-color: #fee; color: #900; padding: 15px; border-left: 5px solid #d9534f; margin-bottom: 20px;"> 
-    <strong>{{ name_error | default("Неизвестная ошибка") }}</strong> 
+<div class="alert-error">
+    <strong>{{ name_error | default("Неизвестная ошибка") }}</strong>
+    
     {% if details %} 
-    <p style="white-space: pre-wrap; font-size: 0.9em; margin-top: 10px;">{{ details }}</p> 
+        <div class="alert-details">{{ details }}</div> 
     {% endif %} 
 </div>
 {% endblock %}

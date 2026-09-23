@@ -12,7 +12,7 @@ import random
 import argparse
 from faker import Faker
 
-def generate_data(dsn=None, count_employees=5000, count_department=10): 
+def generate_data(dsn=None, count_employees=5000, count_department=25): 
     """
     Функция генерации данных
     dsn - строка подключения
@@ -124,7 +124,7 @@ def generate_data(dsn=None, count_employees=5000, count_department=10):
 
 def args_process():
     arguments = argparse.ArgumentParser(description="Генерация тестовых данных для приложения")
-    arguments.add_argument( '-e', '--employees', type=int, default=50000, help='Сотрудники (по умолчанию: 5000)' ) 
+    arguments.add_argument( '-e', '--employees', type=int, default=5000, help='Сотрудники (по умолчанию: 5000)' ) 
     arguments.add_argument( '-d', '--departments', type=int, default=25, help='Подразделения (по умолчанию: 10)' ) 
     return arguments.parse_args()
 
