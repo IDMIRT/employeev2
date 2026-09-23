@@ -30,13 +30,9 @@ def user_autorized():
 
 @app.route('/')
 def home_page():
-
-    # if session.get('user',None):
-    #     is_authorized = True
-    # else:
-    #     is_authorized = False
+    
     return render_template('index.html')    
-    # return render_template('index.html',is_authorized=is_authorized)
+    
 
 
 @app.route('/error')
@@ -108,18 +104,45 @@ def employees():
     # employees_query = Employee.query.order_by(Employee.id.asc)
     employees_query = Employee.query.join(Department)
 
-    sort_dict = {'name':Employee.name,'employee_position':Employee.employee_position,
-                 'salary':Employee.salary,'employment_date':Employee.date_employment}
+    #из за ограничений ORM идею пришлось отбросить Employee.department.name_department :(
+    # sort_dict = {'name':Employee.name,'employee_position':Employee.employee_position,
+    #              'salary':Employee.salary,'employment_date':Employee.date_employment,
+    #              'department': Employee.department.name_department} 
 
-    field = sort_dict.get(sorting,Employee.name)
+    # field = sort_dict.get(sorting,Employee.name)
+
+    # топорно но надежно #не прокатило join поля вываливаются в ошибку
+    # if sorting == 'name': 
+    #     field = Employee.name 
+    # elif sorting == 'employee_position': 
+    #     field = Employee.employee_position 
+    # elif sorting == 'salary': 
+    #     field = Employee.salary 
+    # elif sorting == 'employment_date': 
+    #     field = Employee.date_employment 
+    # elif sorting == 'department': 
+    #     field = Employee.department.name_department 
+    # else: 
+    #     field = Employee.name 
+
+    # Словарь соответствия URL-параметров полям базы данных ТЕКСТОМ 
+    sort_columns = {'name': 'employee.name', 'employee_position': 'employee.employee_position', 
+                    'salary': 'employee.salary', 'employment_date': 'employee.date_employment', 
+                    'department': 'department.name_department'} # <--- Вот здесь мы используем полное имя таблицы } 
+    # Получаем строку имени поля из словаря 
+    column_name = sort_columns.get(sorting, 'employee.name') 
+    # Создаем безопасный объект текста 
+    sort_field = text(f"{column_name} {order}") # Применяем сортировку 
+    employees_query = employees_query.order_by(sort_field) # --- КОНЕЦ БЛОКА ---
 
     # order_dict = {'asc':field.asc(),'desc':field.desc()}
-    if order == 'desc':
-        # employees_query = employees_query.join(Department).order_by(field.desc()) 
-        employees_query = employees_query.order_by(field.desc()) 
-    else:
-        employees_query = employees_query.order_by(field.asc()) 
-        # employees_query = employees_query.order_by(order_dict.get(order,field.asc())) 
+    # if order == 'desc':
+    #     # employees_query = employees_query.join(Department).order_by(field.desc()) 
+    #     # employees_query = employees_query.order_by(field.desc()) 
+    #     employees_query = employees_query.order_by(field.desc()) 
+    # else:
+    #     employees_query = employees_query.order_by(field.asc()) 
+    #     # employees_query = employees_query.order_by(order_dict.get(order,field.asc())) 
 
     pagination = employees_query.paginate(page=current_page, per_page=page_count, error_out=False) 
     employees = pagination.items # Список объектов сотрудников только для текущей страницы
@@ -134,7 +157,7 @@ def employees():
 @app.route('/departments',methods=['GET', 'POST'])
 def departments():
     #в orm реализация этого запроса очень заморочена, потом разобраться
-    text_sql = """select dep.name_department, 
+    text_sql = """select dep.id, dep.name_department, 
     parent.name_department as parent_department, 
     emp.name as boss_dept 
     from department as dep 
@@ -207,7 +230,4 @@ if __name__ == '__main__':
         print(docker_installing[1])
 
 
-    # if check_docker()==True:
-        
-    # else:
-    #     print("Ошибка работы c Docker")
+    
