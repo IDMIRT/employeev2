@@ -171,8 +171,10 @@
                 text-align: center;
                 border-left: none;
             }
+
+                
           
-        }      
+            }      
     </style>
     {% block styles %}     
     {% endblock %}  
@@ -193,36 +195,33 @@
                 </li>
                 
                 <li>
-                    <a href="{% if is_authorized %}{{ url_for('departments') }}{% else %}#{% endif %}"
+                    <a href="{% if is_authorized %}{{url_for('departments')}}{% else %}#{% endif %}"
                         class="{% if is_authorized %}active{% else %}disabled-link{% endif %}" {% if not is_authorized
                         %}aria-disabled="true" {% endif %}>
                         Подразделения
                     </a>
                 </li>
+                
+                <li>
+                    <a href="{% if is_authorized %}{{url_for('search')}}{% else %}#{% endif %}"
+                        class="{% if is_authorized %}active{% else %}disabled-link{% endif %}" {% if not is_authorized
+                        %}aria-disabled="true" {% endif %}>
+                        Поиск
+                    </a>
+                </li>
 
-
-                <!-- Поиск (заглушка текстом) -->
                 <li>
                     {% if is_authorized %}
-                    <span class="active">Поиск</span>
+                    <a href="{{url_for('logout')}}">Выйти</a>
                     {% else %}
-                    <span class="disabled-link" aria-disabled="true">Поиск</span>
+                    <a href="{{url_for('login')}}">Войти</a>
                     {% endif %}
                 </li>
 
-                <!-- Кнопка Войти/Выйти -->
-                <li>
-                    {% if is_authorized %}
-                    <a href="{{ url_for('logout') }}">Выйти</a>
-                    {% else %}
-                    <a href="{{ url_for('login') }}">Войти</a>
-                    {% endif %}
-                </li>
-
-                <!-- Debug-индикатор -->
-                <li style="margin-left: 20px; font-size: 0.8rem; opacity: 0.8;">
+                <!-- Индикатор сессии -->
+                <!-- <li style="margin-left: 20px; font-size: 0.8rem; opacity: 0.8;">
                     {% if is_authorized %}СЕССИЯ ЕСТЬ{% else %}СЕССИИ НЕТ{% endif %}
-                </li>
+                </li> -->
             </ul>
         </nav>
     </header>

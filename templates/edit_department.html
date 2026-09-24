@@ -1,47 +1,102 @@
 {% extends "base.html" %}
 
-{% block title %}Редактирование {{ department.name_department }}{% endblock %}
+
+{% block styles %}
+<style>
+    /* --- Базовые настройки для этого шаблона --- */
+    
+    /* Стиль для неактивного текста (ID или отключенные поля) */
+    .text-muted {
+        color: #6c757d;
+    }
+
+    /* Контейнер формы/контента */
+    .content-box {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    input[type="text"], select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box; /* Важно для корректной ширины */
+        font-size: 1rem;
+    }
+
+    input[disabled] {
+        background-color: #f8f9fa;
+        cursor: not-allowed;
+    }
+
+    /* Кнопки действий */
+    .btn {
+        display: inline-block;
+        padding: 8px 16px;
+        text-decoration: none;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.2s ease;
+    }
+
+    .btn-primary { 
+        background-color: #2ecc71; 
+        color: white; 
+    }
+    .btn-primary:hover { background-color: #27ae60; }
+
+    .btn-secondary { 
+        background-color: #95a5a6; 
+        color: white; 
+    }
+    .btn-secondary:hover { background-color: #7f8c8d; }
+</style>
+{% endblock %}
+
+
 
 {% block content %}
 <h2>Редактирование: "{{ department.name_department }}"</h2>
 
-<!-- Вывод сообщений об успехе/ошибке -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    {% for category, message in messages %}
-      <div class="flash-message flash-{{ category }}"> 
-        {{ message }} 
-      </div>
-    {% endfor %}
-  {% endif %}
+<div class="content-box">
+    <form method="POST">
+        <input type="hidden" name="dept_id" value="{{ department.id }}">
 
-<form method="POST">
-    <input type="hidden" name="dept_id" value="{{ department.id }}">
+        <label><strong>ID:</strong></label>
+        <span style="margin-left: 10px;">{{ department.id }}</span><br><br>
 
-    <label><strong>ID:</strong></label>
-    <span style="margin-left: 10px;">{{ department.id }}</span><br><br>
+        <label for="name"><strong>Название:</strong></label>
+        <input type="text" id="name" name="name_department" value="{{ department.name_department }}" disabled><br><br>
 
-    <label><strong>Название:</strong></label><br>
-    <input type="text" value="{{ department.name_department }}" disabled 
-           style="width: 300px; padding: 5px;"><br><br>
+        <label for="boss_select"><strong>Выберите руководителя:</strong></label>
+        <select name="boss_select" id="boss_select">
+            <option value="">-- Не назначен --</option>
+            {% for emp in employees %}
+                <option value="{{ emp.name }}"
+                        {% if emp.name == current_boss %}selected{% endif %}>
+                    {{ emp.name }}
+                </option>
+            {% endfor %}
+        </select><br><br>
 
-    <label for="boss_select"><strong>Выберите руководителя:</strong></label><br>
-    <select name="boss_select" id="boss_select" style="width: 300px; padding: 6px;">
-        <option value="">-- Не назначен --</option>
-        {% for emp in employees %}
-            <option value="{{ emp.name }}"
-                    {% if emp.name == current_boss %}selected{% endif %}>
-                {{ emp.name }}
-            </option>
-        {% endfor %}
-    </select>
-    <small style="color: #666; margin-left: 10px;">(Сейчас: {{ current_boss or '—' }})</small><br><br>
+        <small style="color: #666; margin-left: 10px;">(Сейчас: {{ current_boss or '—' }})</small><br><br>
 
-    <button type="submit" style="background: #2ecc71; color: white; border: none; padding: 8px 15px; cursor: pointer;">
-        Сохранить
-    </button>
-    <a href="{{ url_for('departments') }}" style="margin-left: 10px; color: #3498db;">Отмена</a>
-</form>
+        <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+        <a href="{{ url_for('departments') }}" class="btn btn-secondary" style="margin-left: 10px;">Отмена</a>
+    </form>
+</div>
 <br>
-<a href="{{ url_for('departments') }}">&larr; Вернуться к списку всех подразделений</a>
+<a href="{{ url_for('departments') }}" style="color: #3498db;">&larr; Вернуться к списку всех подразделений</a>
 {% endblock %}

@@ -1,11 +1,12 @@
 from flask import Flask, render_template,request,redirect,url_for,session,flash
-from sqlalchemy import inspect, MetaData, text
+from sqlalchemy import inspect, MetaData, text,func
 from pathlib import Path
 from services import auth_users,check_user,check_docker,start_docker,stop_docker
 from models import db,Employee,Department
 import secrets # на сессиях зависают secret_key в куках, потому просто генерим secret_key
 import sys
 import os
+from sqlalchemy.orm import selectinload 
 
 current_dir = Path(__file__).resolve().parent
 # current_user = None
@@ -93,6 +94,12 @@ def login():
 
     return redirect(url_for('home_page'))
 
+
+@app.route('/search', methods=['GET'])
+def search():    
+    return render_template('search.html', search_query="")
+
+
 @app.route('/employees',methods=['GET', 'POST'])
 def employees(): 
     current_page = request.args.get('page',1, type=int)
@@ -101,8 +108,14 @@ def employees():
 
     page_count = 50
 
+    search_query = request.args.get('str_search', '').strip()
+
     # employees_query = Employee.query.order_by(Employee.id.asc)
     employees_query = Employee.query.join(Department)
+
+    if search_query: 
+        search_string = f'%{search_query.lower()}%' 
+        employees_query = employees_query.filter(func.lower(Employee.name).like(search_string))
 
     #из за ограничений ORM идею пришлось отбросить Employee.department.name_department :(
     # sort_dict = {'name':Employee.name,'employee_position':Employee.employee_position,
@@ -154,6 +167,53 @@ def employees():
                            current_order=order)
 
 
+
+
+@app.route('/employee/edit/<int:emp_id>', methods=['GET', 'POST'])
+def edit_employee(emp_id):
+    # Получаем объект сотрудника вместе с его текущим отделом одним запросом
+    employee = db.session.query(Employee).options(selectinload(Employee.department)).get(emp_id)
+    
+    if not employee:
+        flash('Сотрудник не найден!', 'danger')
+        return redirect(url_for('employees'))
+
+    # Если пришла форма (нажали кнопку Сохранить)
+    if request.method == 'POST':
+        new_dept_id = request.form.get('department_select')
+        
+        # Проверяем, выбран ли отдел вообще
+        if not new_dept_id or new_dept_id == "":
+            flash('Ошибка: Отдел не выбран.', 'warning')
+        else:
+            # Обновляем ID отдела у сотрудника
+            employee.department_id = int(new_dept_id)
+            
+            # ВАЖНО: Если босс переходит в другой отдел, он перестает быть боссом старого
+            if employee.boss_department == True:
+                employee.boss_department = False 
+            
+            db.session.commit()
+            flash(f'Подразделение успешно изменено на {new_dept_id}', 'success')
+            
+        return redirect(url_for('edit_employee', emp_id=emp_id))
+
+    # --- Подготовка данных для GET запроса ---
+    
+    # Список ВСЕХ отделов для выпадающего списка <select>
+    all_departments = Department.query.order_by(Department.name_department.asc()).all()
+    
+    # Имя текущего начальника этого отдела (для информации)
+    current_boss_in_current_dept = db.session.query(Employee.name)\
+        .filter(Employee.department_id == employee.department_id, Employee.boss_department == True)\
+        .scalar()
+        
+    return render_template('edit_employee.html', 
+                           employee=employee, 
+                           departments=all_departments,
+                           current_boss=current_boss_in_current_dept)
+
+
 @app.route('/departments',methods=['GET', 'POST'])
 def departments():
     #в orm реализация этого запроса очень заморочена, потом разобраться
@@ -173,32 +233,58 @@ def departments():
 
 @app.route('/department/edit/<int:dept_id>', methods=['GET', 'POST']) 
 def edit_department(dept_id): 
-    # Получаем объект отдела по ID из базы 
+    # 1. Получаем объект отдела
     dept = db.session.query(Department).get(int(dept_id)) 
     if not dept: 
         flash('Отдел не найден!', 'danger') 
         return redirect(url_for('departments')) 
-# Если пришла форма с данными (нажали кнопку Сохранить) 
+        
+    # --- Логика обработки POST (сохранение) ---
     if request.method == 'POST': 
-        new_boss_name = request.form.get('boss_select') 
-        # Сначала снимаем статус "Босс" со всех сотрудников этого отдела 
-        db.session.query(Employee).filter(Employee.department_id == dept_id, Employee.boss_department == True).update({Employee.boss_department: False}) 
-        # Затем ищем выбранного сотрудника и назначаем его боссом 
-        new_boss = db.session.query(Employee).filter(Employee.name == new_boss_name, Employee.department_id == dept_id).first() 
-        if not new_boss: 
-            flash(f'Ошибка: Сотрудник {new_boss_name} не состоит в этом отделе.', 'danger') 
-        else: new_boss.boss_department = True 
-        db.session.commit() 
-        flash('Руководитель успешно изменен!', 'success') 
-        # Перезагружаем ту же страницу, чтобы увидеть изменения 
+        new_boss_name = request.form.get('boss_select')
+        
+        # Снимаем статус со старого босса
+        db.session.query(Employee).filter(
+            Employee.department_id == dept_id, 
+            Employee.boss_department == True
+        ).update({Employee.boss_department: False})
+        
+        # Назначаем нового
+        if new_boss_name:
+            new_boss = db.session.query(Employee).filter(
+                Employee.name == new_boss_name, 
+                Employee.department_id == dept_id
+            ).first() 
+            
+            if not new_boss: 
+                flash(f'Ошибка: Сотрудник {new_boss_name} не состоит в этом отделе.', 'danger') 
+            else:
+                new_boss.boss_department = True 
+                db.session.commit() 
+                flash('Руководитель успешно изменен!', 'success')
+                
+        # Перезагружаем ту же страницу
         return redirect(url_for('edit_department', dept_id=dept_id)) 
-    # --- Подготовка данных для отображения формы --- 
-    # # Список ТОЛЬКО сотрудников ЭТОГО отдела для выпадающего списка 
-    employees_in_dept = db.session.query(Employee.id, Employee.name).filter(Employee.department_id == dept_id).order_by(Employee.name.asc()).all() 
-    # Имя текущего начальника (если есть) 
-    current_boss = db.session.query(Employee.name).filter(Employee.department_id == dept_id, Employee.boss_department == True).scalar() 
-    return render_template('edit_department.html', department=dept, employees=employees_in_dept, current_boss=current_boss)
 
+    # --- Подготовка данных для GET запроса (отображение формы) ---
+    
+    # Список сотрудников ТОЛЬКО ЭТОГО отдела для <select>
+    department_employees = db.session.query(Employee.id, Employee.name)\
+        .filter(Employee.department_id == dept_id)\
+        .order_by(Employee.name.asc()).all() 
+        
+    # Имя текущего начальника (если назначен)
+    current_boss_name = db.session.query(Employee.name)\
+        .filter(Employee.department_id == dept_id, Employee.boss_department == True)\
+        .scalar() 
+        
+    # Рендерим шаблон, передавая подготовленные списки
+    return render_template(
+        'edit_department.html', 
+        department=dept, 
+        employees=department_employees,          # Для цикла option
+        current_boss=current_boss_name           # Для отображения текста "(Сейчас: ...)"
+    )
 
     
 
