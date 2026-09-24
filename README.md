@@ -68,10 +68,11 @@ flask --app run.py run
 Авторизация: Работает напрямую с SQLite до момента нажатия кнопки «Войти».
 Основная БД: После успешного входа вызывается функция start_docker(). Только после того, как контейнер Postgres ответит статусом healthy, происходит инициализация движка ORM для рабочей базы.
 Связи: Используется связь "Многие-к-одному" между сотрудником и отделом.
-Структура моделей (модели подразумеваются исходя из кода)
-Модель	Поля
-Employee	id, name, employee_position, salary, date_employment, department_id (FK), boss_department (bool)
-Department	id, name_department, parent_id (Self-referential FK для иерархии)
+Структура моделей 
+| Модель	| Поля |
+|---------|------|
+| Employee|	id, name, employee_position, salary, date_employment, department_id (FK), boss_department (bool)|
+|Department|	id, name_department, parent_id (Self-referential FK для иерархии)|
 
 # 🐞 Возможные проблемы и решения
 |Проблема	|Решение|
