@@ -110,7 +110,7 @@ def employees():
 
     
     sort_columns = {'name': 'employee.name', 'employee_position': 'employee.employee_position', 
-                    'salary': 'employee.salary', 'employment_date': 'employee.date_employment', 
+                    'salary': 'employee.salary', 'date_employment': 'employee.date_employment', 
                     'department': 'department.name_department'} 
     
     column_name = sort_columns.get(sorting, 'employee.name') 

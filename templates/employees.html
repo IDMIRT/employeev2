@@ -1,4 +1,3 @@
-<!-- templates/employees.html -->
 {% extends "base.html" %}
 
 {% block title %}Список сотрудников{% endblock %}
@@ -52,6 +51,16 @@
                       <a href="?page={{ pagination.page }}&sort=name&order=asc">ФИО</a>
                   {% endif %}
               </th>
+
+              <th>
+                  {% if current_sort == 'date_employment' and current_order == 'asc' %}
+                      <a href="?page={{ pagination.page }}&sort=date_employment&order=desc">Дата приема ↓</a>
+                  {% elif current_sort == 'date_employment' and current_order == 'desc' %}
+                      <a href="?page={{ pagination.page }}&sort=date_employment&order=asc">Дата приема ↑</a>
+                  {% else %}
+                      <a href="?page={{ pagination.page }}&sort=date_employment&order=asc">Дата приема</a>
+                  {% endif %}
+              </th>
               
               <th>
                   {% if current_sort == 'employee_position' and current_order == 'asc' %}
@@ -87,10 +96,11 @@
       <tbody>
           {% for item in employees %}
           <tr>
-              <td>{{ item.name }}</td>
+              <td>{{ item.name }}</td>              
+              <td>{{ item.date_employment.strftime('%d.%m.%Y') }}</td>
               <td>{{ item.employee_position }}</td> 
               <td>{{ item.department.name_department if item.department else '—' }}</td>
-              <td>{{ "%.0f ₽"|format(item.salary or 0) }}</td>
+              <td>{{ "%.0f ₽"|format(item.salary or 0) }}</td>              
               <td> <a href="{{ url_for('edit_employee', emp_id=item.id) }}" class="btn btn-sm btn-primary"> Сменить отдел </a> </td>
           </tr>
           {% endfor %}

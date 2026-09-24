@@ -10,6 +10,10 @@ class Department(db.Model):
 
     employee = db.relationship('Employee', back_populates="department")
 
+    @property 
+    def boss_query(self): 
+        return Employee.query.filter_by(department_id=self.id, boss_department=True).first()
+
 
 class Employee(db.Model):
     __tablename__= 'employee'
