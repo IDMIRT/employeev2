@@ -44,7 +44,6 @@ def generate_data(dsn=None, count_employees=5000, count_department=25):
     
     t_start = time.time()
     
-    # Верхний уровень - организация
     fake = Faker('ru_RU') #генератор данных сотрудников
     root_dept = Department(name_department="ООО 'Рога и копыта'")
     
@@ -80,7 +79,6 @@ def generate_data(dsn=None, count_employees=5000, count_department=25):
         dept = Department(name_department=name_dept, parent_id=parent_choice.id) 
         db_session.add(dept) 
         db_session.flush()
-        # db_session.commit()
         choice_department.append(dept)
 
         boss = Employee(name=fake.name(), department_id=dept.id, 

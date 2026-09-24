@@ -9,18 +9,10 @@ import os
 from sqlalchemy.orm import selectinload 
 
 current_dir = Path(__file__).resolve().parent
-# current_user = None
-# password_current_user = None
-
 
 app = Flask(__name__)
-#дабы не сбрасывать куки менять ключ
+#дабы не сбрасывать куки буду менять ключ
 app.secret_key = secrets.token_urlsafe(32)
-# сессии
-# app.config['TEMPLATES_AUTO_RELOAD'] = True
-# app.jinja_env.auto_reload = True
-# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# сессии
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:' #заглушка обязательна, без неё init_app падает
 db.init_app(app)
@@ -57,19 +49,16 @@ def login():
         
     elif request.method=='POST': 
         user_id = int(request.form.get("username"))
-        # session['password']=request.form.get("password")
         user_password = request.form.get("password")
         
-
-        # user_db = check_user(user_id,session['password'],current_dir)
+        
         user_db = check_user(user_id,user_password,current_dir)
         if user_db[0] == True:            
             session['user'] = user_db[1] 
             session.modified = True
             dsn = start_docker()
 
-        if check_docker() != True:
-            # flash(f"Ошибка, нет установленного Docker: {str(e)}", "danger")
+        if check_docker() != True:            
             return redirect(url_for('error'),f"Ошибка, нет установленного Docker: {str(e)}")
 
         if not dsn == None:
@@ -107,10 +96,7 @@ def employees():
     order = request.args.get('order','asc')
 
     page_count = 50
-
-    search_query = request.args.get('str_search', '').strip()
-
-    # employees_query = Employee.query.order_by(Employee.id.asc)
+    search_query = request.args.get('str_search', '').strip()    
     employees_query = Employee.query.join(Department)
 
     if search_query: 
@@ -122,74 +108,40 @@ def employees():
     #              'salary':Employee.salary,'employment_date':Employee.date_employment,
     #              'department': Employee.department.name_department} 
 
-    # field = sort_dict.get(sorting,Employee.name)
-
-    # топорно но надежно #не прокатило join поля вываливаются в ошибку
-    # if sorting == 'name': 
-    #     field = Employee.name 
-    # elif sorting == 'employee_position': 
-    #     field = Employee.employee_position 
-    # elif sorting == 'salary': 
-    #     field = Employee.salary 
-    # elif sorting == 'employment_date': 
-    #     field = Employee.date_employment 
-    # elif sorting == 'department': 
-    #     field = Employee.department.name_department 
-    # else: 
-    #     field = Employee.name 
-
-    # Словарь соответствия URL-параметров полям базы данных ТЕКСТОМ 
+    
     sort_columns = {'name': 'employee.name', 'employee_position': 'employee.employee_position', 
                     'salary': 'employee.salary', 'employment_date': 'employee.date_employment', 
-                    'department': 'department.name_department'} # <--- Вот здесь мы используем полное имя таблицы } 
-    # Получаем строку имени поля из словаря 
+                    'department': 'department.name_department'} 
+    
     column_name = sort_columns.get(sorting, 'employee.name') 
-    # Создаем безопасный объект текста 
-    sort_field = text(f"{column_name} {order}") # Применяем сортировку 
-    employees_query = employees_query.order_by(sort_field) # --- КОНЕЦ БЛОКА ---
-
-    # order_dict = {'asc':field.asc(),'desc':field.desc()}
-    # if order == 'desc':
-    #     # employees_query = employees_query.join(Department).order_by(field.desc()) 
-    #     # employees_query = employees_query.order_by(field.desc()) 
-    #     employees_query = employees_query.order_by(field.desc()) 
-    # else:
-    #     employees_query = employees_query.order_by(field.asc()) 
-    #     # employees_query = employees_query.order_by(order_dict.get(order,field.asc())) 
+    sort_field = text(f"{column_name} {order}") 
+    employees_query = employees_query.order_by(sort_field) 
 
     pagination = employees_query.paginate(page=current_page, per_page=page_count, error_out=False) 
-    employees = pagination.items # Список объектов сотрудников только для текущей страницы
 
-    return render_template('employees2.html', 
+    return render_template('employees.html', 
                            employees=pagination.items, 
                            pagination=pagination, 
                            current_sort=sorting, 
                            current_order=order)
 
 
-
-
 @app.route('/employee/edit/<int:emp_id>', methods=['GET', 'POST'])
 def edit_employee(emp_id):
-    # Получаем объект сотрудника вместе с его текущим отделом одним запросом
     employee = db.session.query(Employee).options(selectinload(Employee.department)).get(emp_id)
     
     if not employee:
         flash('Сотрудник не найден!', 'danger')
         return redirect(url_for('employees'))
 
-    # Если пришла форма (нажали кнопку Сохранить)
     if request.method == 'POST':
         new_dept_id = request.form.get('department_select')
         
-        # Проверяем, выбран ли отдел вообще
         if not new_dept_id or new_dept_id == "":
             flash('Ошибка: Отдел не выбран.', 'warning')
         else:
-            # Обновляем ID отдела у сотрудника
             employee.department_id = int(new_dept_id)
             
-            # ВАЖНО: Если босс переходит в другой отдел, он перестает быть боссом старого
             if employee.boss_department == True:
                 employee.boss_department = False 
             
@@ -198,20 +150,15 @@ def edit_employee(emp_id):
             
         return redirect(url_for('edit_employee', emp_id=emp_id))
 
-    # --- Подготовка данных для GET запроса ---
-    
-    # Список ВСЕХ отделов для выпадающего списка <select>
     all_departments = Department.query.order_by(Department.name_department.asc()).all()
     
-    # Имя текущего начальника этого отдела (для информации)
-    current_boss_in_current_dept = db.session.query(Employee.name)\
-        .filter(Employee.department_id == employee.department_id, Employee.boss_department == True)\
-        .scalar()
+    current_boss_dept = db.session.query(Employee.name)\
+    .filter(Employee.department_id == employee.department_id, Employee.boss_department == True).scalar()
         
     return render_template('edit_employee.html', 
                            employee=employee, 
                            departments=all_departments,
-                           current_boss=current_boss_in_current_dept)
+                           current_boss=current_boss_dept)
 
 
 @app.route('/departments',methods=['GET', 'POST'])
@@ -224,8 +171,7 @@ def departments():
     left join department as parent on dep.parent_id=parent.id
     left join (select name,department_id, boss_department from employee where boss_department=True) as emp 
     on dep.id=emp.department_id"""
-
-    # dep_cursor = db.session.execute(text(text_sql)).fetchall()
+    
     dict_department = db.session.execute(text(text_sql)).mappings().all()
 
     return render_template("departments.html",departments=dict_department)
@@ -233,23 +179,21 @@ def departments():
 
 @app.route('/department/edit/<int:dept_id>', methods=['GET', 'POST']) 
 def edit_department(dept_id): 
-    # 1. Получаем объект отдела
+
     dept = db.session.query(Department).get(int(dept_id)) 
     if not dept: 
         flash('Отдел не найден!', 'danger') 
         return redirect(url_for('departments')) 
         
-    # --- Логика обработки POST (сохранение) ---
+
     if request.method == 'POST': 
         new_boss_name = request.form.get('boss_select')
         
-        # Снимаем статус со старого босса
         db.session.query(Employee).filter(
             Employee.department_id == dept_id, 
             Employee.boss_department == True
         ).update({Employee.boss_department: False})
         
-        # Назначаем нового
         if new_boss_name:
             new_boss = db.session.query(Employee).filter(
                 Employee.name == new_boss_name, 
@@ -263,36 +207,22 @@ def edit_department(dept_id):
                 db.session.commit() 
                 flash('Руководитель успешно изменен!', 'success')
                 
-        # Перезагружаем ту же страницу
         return redirect(url_for('edit_department', dept_id=dept_id)) 
 
-    # --- Подготовка данных для GET запроса (отображение формы) ---
-    
-    # Список сотрудников ТОЛЬКО ЭТОГО отдела для <select>
     department_employees = db.session.query(Employee.id, Employee.name)\
         .filter(Employee.department_id == dept_id)\
         .order_by(Employee.name.asc()).all() 
         
-    # Имя текущего начальника (если назначен)
     current_boss_name = db.session.query(Employee.name)\
         .filter(Employee.department_id == dept_id, Employee.boss_department == True)\
         .scalar() 
         
-    # Рендерим шаблон, передавая подготовленные списки
     return render_template(
         'edit_department.html', 
         department=dept, 
-        employees=department_employees,          # Для цикла option
-        current_boss=current_boss_name           # Для отображения текста "(Сейчас: ...)"
+        employees=department_employees,          
+        current_boss=current_boss_name           
     )
-
-    
-
-
-# @app.route('/search',methods=['GET', 'POST'])
-# def search():
-#     pass
-
 
 
 @app.route('/logout',methods=['GET', 'POST'])
@@ -300,7 +230,7 @@ def logout():
     stopped_db = stop_docker()
 
     if stopped_db == True:
-        session['user'] = None           
+        session['user'] = None                   
     
     return redirect(url_for('home_page')) 
 

@@ -91,7 +91,6 @@
             padding: 20px;
         }
 
-        /* --- ТАБЛИЦЫ И ПАГИНАЦИЯ (оставлено без изменений) --- */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -134,7 +133,6 @@
         }
 
 
-        /* --- АДАПТИВНОСТЬ --- */
         @media (max-width: 768px) {
             body {
                 display: block;
@@ -185,7 +183,7 @@
         <a href="/" class="logo">Управление сотрудниками</a>
         <nav>
             <ul class="nav-menu">
-                <!-- Сотрудники (с динамическим URL) -->
+
                 <li>
                     <a href="{% if is_authorized %}{{ url_for('employees') }}{% else %}#{% endif %}"
                         class="{% if is_authorized %}active{% else %}disabled-link{% endif %}" {% if not is_authorized
