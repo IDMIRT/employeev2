@@ -1,5 +1,5 @@
 from flask import Flask, render_template,request,redirect,url_for,session,flash
-from sqlalchemy import inspect, MetaData, text,func
+from sqlalchemy import inspect, MetaData, text,func,text
 from pathlib import Path
 from services import auth_users,check_user,check_docker,start_docker,stop_docker
 from models import db,Employee,Department
@@ -97,7 +97,9 @@ def employees():
 
     page_count = 50
     search_query = request.args.get('str_search', '').strip()    
-    employees_query = Employee.query.join(Department)
+    # employees_query = Employee.query.join(Department)
+    employees_query = Employee.query.options(selectinload(Employee.department))
+    
 
     if search_query: 
         search_string = f'%{search_query.lower()}%' 
@@ -109,13 +111,18 @@ def employees():
     #              'department': Employee.department.name_department} 
 
     
-    sort_columns = {'name': 'employee.name', 'employee_position': 'employee.employee_position', 
-                    'salary': 'employee.salary', 'date_employment': 'employee.date_employment', 
-                    'department': 'department.name_department'} 
+    sort_columns = {'name': 'employee.name', 
+                    'employee_position': 'employee.employee_position', 
+                    'salary': 'employee.salary', 
+                    'date_employment': 'employee.date_employment', 
+                    'department': 'department.name_department',
+                    'boss_name': 'employee.boss_name'} 
     
     column_name = sort_columns.get(sorting, 'employee.name') 
     sort_field = text(f"{column_name} {order}") 
-    employees_query = employees_query.order_by(sort_field) 
+    employees_query = employees_query.order_by(sort_field)    
+
+
 
     pagination = employees_query.paginate(page=current_page, per_page=page_count, error_out=False) 
 

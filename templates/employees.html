@@ -91,6 +91,9 @@
                       <a href="?page={{ pagination.page }}&sort=salary&order=asc">Зарплата</a>
                   {% endif %}
               </th>
+              <th>
+                Руководитель
+              </th>
           </tr>
       </thead>
       <tbody>
@@ -100,7 +103,24 @@
               <td>{{ item.date_employment.strftime('%d.%m.%Y') }}</td>
               <td>{{ item.employee_position }}</td> 
               <td>{{ item.department.name_department if item.department else '—' }}</td>
-              <td>{{ "%.0f ₽"|format(item.salary or 0) }}</td>              
+              <td>{{ "%.0f ₽"|format(item.salary or 0) }}</td>       
+              <td>
+              <td> 
+                {# 1. Сначала выведем сам объект #} 
+                {{ item.department.boss }} 
+                {# 2. Если объект есть, выведем имя #} 
+                {% if item.department and item.department.boss %} 
+                    {{ item.department.boss.name }} 
+                {% else %} 
+                  — 
+                {% endif %} 
+               </td> 
+               <td>{{ debug() }}</td> {# ВОТ ЭТА СТРОКА #}
+                <!-- {# Используем фильтр selectattr: ищем в списке item.department.employees того, у кого атрибут boss_department равен True #}
+                {% set boss = item.department.employees|selectattr('boss_department')|first %}
+     -->
+                
+            </td>
               <td> <a href="{{ url_for('edit_employee', emp_id=item.id) }}" class="btn btn-sm btn-primary"> Сменить отдел </a> </td>
           </tr>
           {% endfor %}
